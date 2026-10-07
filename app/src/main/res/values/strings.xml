@@ -127,10 +127,32 @@
     <string name="version_s">Version %s</string>
     <string name="module_disabled">Module disabled</string>
     <string name="whatsapp_in_background">WhatsApp in background</string>
-    <string name="whatsapp_is_not_running_or_has_not_been_activated_in_lsposed">Whatsapp is not running or has not been activated in Lsposed</string>
-    <string name="business_is_not_running_or_has_not_been_activated_in_lsposed">Business is not running or has not been activated in Lsposed</string>
-    <string name="restart_wpp">It is necessary to restart WhatsApp for the changes in Wa Enhancer to take effect.\n\nDo you want to restart?</string>
-    <string name="version_s_not_listed">Version %s not listed in supported versions!\nPlease use supported WhatsApp version!</string>
+    <string name="whatsapp_is_not_running_or_has_not_been_activated_in_lsposed">WhatsApp not running or module unhooked</string>
+    <string name="business_is_not_running_or_has_not_been_activated_in_lsposed">WhatsApp Business not running or module unhooked</string>
+    <string name="whatsapp_standby_ready">WhatsApp Standby (Armed)</string>
+    <string name="whatsapp_standby_summary">Module active. Injects automatically on WhatsApp launch.</string>
+    <string name="business_standby_ready">Business Standby (Armed)</string>
+    <string name="business_standby_summary">Module active. Injects automatically on Business launch.</string>
+    <string name="open_whatsapp">Open WhatsApp</string>
+    <string name="open_business">Open Business</string>
+    <string name="restart_wpp">Restart WhatsApp to apply changes?\n\nMost privacy settings apply instantly without restarting.</string>
+    <string name="version_s_not_listed">Version %s detected. Operating in compatibility mode.</string>
+    <string name="runtime_controls_title">RUNTIME CONTROLS</string>
+    <string name="runtime_controls_subtitle">Live synchronization · No WhatsApp restart needed</string>
+    <string name="quick_antirevoke">Anti-Revoke</string>
+    <string name="quick_antirevoke_desc">Preserve deleted messages</string>
+    <string name="quick_hideseen">Stealth Read</string>
+    <string name="quick_hideseen_desc">Suppress blue read receipts</string>
+    <string name="quick_ghostmode">Ghost Mode</string>
+    <string name="quick_ghostmode_desc">Frozen last seen &amp; full stealth</string>
+    <string name="quick_statusdownload">Media Saver</string>
+    <string name="quick_statusdownload_desc">Download buttons in chat &amp; status</string>
+    <string name="subsystems_title">FEATURE SUBSYSTEMS</string>
+    <string name="subsystem_chat_desc">Forward limits, custom tags &amp; composer</string>
+    <string name="subsystem_privacy_desc">Call blocker, typing stealth &amp; lock</string>
+    <string name="subsystem_media_desc">View Once bypass, 60fps &amp; raw bitrate</string>
+    <string name="subsystem_theme_desc">Bubble colors, fonts &amp; time format</string>
+    <string name="theme">Theme &amp; Style</string>
     <string name="media">Media</string>
     <string name="show_button_to_send_blue_tick">Show Button to send blue tick</string>
     <string name="show_button_to_send_blue_tick_sum">Show Button to send blue tick (mark as read/viewed)</string>
@@ -557,4 +579,7 @@
     <string name="diag_hma_blocked">Hide My App List is hiding WaEnhancer from:</string>
     <string name="diag_hma_disable">Disable the block for WhatsApp/Business in Hide My App List so WaEnhancer can work correctly.</string>
     <string name="diag_copied">Line copied to clipboard</string>
+
+    <string name="status_inactive">Standby</string>
+    <string name="status_active">Active</string>
 </resources>

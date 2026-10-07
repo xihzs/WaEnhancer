@@ -2,33 +2,33 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="12dp"
-    android:layout_marginEnd="12dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
     android:layout_marginBottom="8dp"
     android:background="@drawable/preference_feature_row_bg"
     android:gravity="center_vertical"
-    android:minHeight="64dp"
+    android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
+    android:paddingStart="14dp"
     android:paddingTop="10dp"
-    android:paddingEnd="12dp"
+    android:paddingEnd="14dp"
     android:paddingBottom="10dp">
 
     <FrameLayout
         android:id="@+id/icon_container"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginEnd="12dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="14dp"
         android:background="@drawable/preference_feature_icon_chip_bg"
         android:foregroundGravity="center"
-        android:padding="8dp">
+        android:padding="6dp">
 
         <ImageView
             android:id="@android:id/icon"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@null"
-            android:tint="?attr/colorPrimary" />
+            android:tint="@android:color/white" />
     </FrameLayout>
 
     <LinearLayout
@@ -42,9 +42,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="2"
-            android:textAppearance="?attr/textAppearanceTitleSmall"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/ios_label_primary"
+            android:textSize="15sp" />
 
         <TextView
             android:id="@android:id/summary"
@@ -52,19 +53,18 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:ellipsize="end"
-            android:maxLines="2"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:textColor="@color/ios_label_tertiary"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <ImageView
         android:id="@+id/chevron_icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
         android:contentDescription="@null"
         android:rotation="-90"
         android:src="@drawable/ic_expand_more_24"
-        android:tint="?attr/colorOnSurfaceVariant" />
+        android:tint="@color/ios_label_tertiary" />
 
     <FrameLayout
         android:id="@android:id/widget_frame"

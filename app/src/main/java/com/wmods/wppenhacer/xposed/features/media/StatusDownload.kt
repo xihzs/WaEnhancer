@@ -26,10 +26,9 @@ class StatusDownload(loader: ClassLoader, preferences: SharedPreferences) :
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun doHook() {
-        if (!xprefs.getBoolean("downloadstatus", false)) return
-
         val downloadStatus = object : MenuStatusProvider.Provider {
             override fun addMenu(menu: Menu, statusData: MenuStatusProvider.StatusData): MenuItem? {
+                if (!xprefs.getBoolean("downloadstatus", false)) return null
                 if (menu.findItem(R.string.download) != null) return null
                 val item = statusData.currentItem
                 if (item.isFromMe) return null

@@ -164,8 +164,18 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(),
         setDisplayHomeAsUpEnabled(true)
     }
 
+    companion object {
+        private val CRITICAL_RESTART_KEYS = setOf(
+            "bootloader_spoofer",
+            "bypass_version_check",
+            "custom_lib_path"
+        )
+    }
+
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-        App.instance.sendBroadcast(Intent("${BuildConfig.APPLICATION_ID}.MANUAL_RESTART"))
+        if (key != null && key in CRITICAL_RESTART_KEYS) {
+            App.instance.sendBroadcast(Intent("${BuildConfig.APPLICATION_ID}.MANUAL_RESTART"))
+        }
         if (isAdded) updatePreferenceStates(key)
     }
 

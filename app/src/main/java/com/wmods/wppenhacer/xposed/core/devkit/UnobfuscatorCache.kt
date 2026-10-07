@@ -217,12 +217,14 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
 
     // ==================== Initialization & Checks ====================
 
+    private val memoryInstanceCache = ConcurrentHashMap<String, Any>()
+    private val NULL_SENTINEL_OBJ = Any()
+
     private fun checkVersionAndResetIfNeeded() {
         val version = cacheStore.getLong(NAMESPACE_HOOKS, "version", 0)
         val currentVersion =
             mApplication.packageManager.getPackageInfo(mApplication.packageName, 0).longVersionCode
         val savedUpdateTime = cacheStore.getLong(NAMESPACE_HOOKS, "updateTime", 0)
-        val savedVersionName = cacheStore.getString(NAMESPACE_HOOKS, "wae_version_name", "")
         val versionName = BuildConfig.VERSION_NAME
 
         var lastUpdateTime = savedUpdateTime
@@ -235,12 +237,10 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
         }
 
         val whatsappUpdated = version != currentVersion
-        val moduleUpdated = savedUpdateTime != lastUpdateTime && BuildConfig.RESET_ON_INSTALL
-        val moduleVersionChanged = versionName != savedVersionName
         val schemaChanged =
             cacheStore.getInt(NAMESPACE_HOOKS, "cache_schema", 0) != CACHE_SCHEMA_VERSION
 
-        if (whatsappUpdated || moduleUpdated || moduleVersionChanged || schemaChanged) {
+        if (whatsappUpdated || schemaChanged) {
             Utils.showToast(mApplication.getString(R.string.starting_cache), Toast.LENGTH_LONG)
             clearCache()
             cacheStore.putLong(NAMESPACE_HOOKS, "version", currentVersion)
@@ -254,6 +254,7 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
     }
 
     fun clearCache() {
+        memoryInstanceCache.clear()
         cacheStore.clearNamespace(NAMESPACE_HOOKS)
         cacheStore.clearNamespace(NAMESPACE_REFLECTION)
         cacheStore.flushBlocking()
@@ -268,15 +269,33 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
         codec: CacheCodec<T>,
         onNull: () -> Exception
     ): T {
-        readCached(key, loader, codec)?.let { return it }
+        val inMem = memoryInstanceCache[key]
+        if (inMem != null) {
+            @Suppress("UNCHECKED_CAST")
+            return inMem as T
+        }
+
+        readCached(key, loader, codec)?.let {
+            memoryInstanceCache[key] = it
+            return it
+        }
 
         // Re-check inside the lock: another thread may have resolved the key while we waited.
-        synchronized(keyLocks.computeIfAbsent(key) { Any() }) {
-            readCached(key, loader, codec)?.let { return it }
+        return synchronized(keyLocks.computeIfAbsent(key) { Any() }) {
+            val secondInMem = memoryInstanceCache[key]
+            if (secondInMem != null) {
+                @Suppress("UNCHECKED_CAST")
+                return@synchronized secondInMem as T
+            }
+            readCached(key, loader, codec)?.let {
+                memoryInstanceCache[key] = it
+                return@synchronized it
+            }
             try {
                 val result = functionCall.call() ?: throw onNull()
                 cacheStore.putString(NAMESPACE_HOOKS, key, codec.serialize(result))
-                return result
+                memoryInstanceCache[key] = result
+                result
             } catch (e: Exception) {
                 throw Exception("Error resolving $key: ${e.message}", e)
             }
@@ -301,6 +320,43 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
         resolve(getKeyName(), loader, functionCall, METHOD_CODEC) {
             NoSuchMethodException("Method is null")
         }
+
+    fun getMethodOrNull(loader: ClassLoader, functionCall: FunctionCall<Method?>): Method? {
+        val key = getKeyName()
+        val inMem = memoryInstanceCache[key]
+        if (inMem != null) {
+            return if (inMem === NULL_SENTINEL_OBJ) null else inMem as? Method
+        }
+
+        readCached(key, loader, METHOD_CODEC)?.let {
+            memoryInstanceCache[key] = it
+            return it
+        }
+
+        return synchronized(keyLocks.computeIfAbsent(key) { Any() }) {
+            val secondInMem = memoryInstanceCache[key]
+            if (secondInMem != null) {
+                return@synchronized if (secondInMem === NULL_SENTINEL_OBJ) null else secondInMem as? Method
+            }
+            readCached(key, loader, METHOD_CODEC)?.let {
+                memoryInstanceCache[key] = it
+                return@synchronized it
+            }
+            try {
+                val result = functionCall.call()
+                if (result != null) {
+                    cacheStore.putString(NAMESPACE_HOOKS, key, METHOD_CODEC.serialize(result))
+                    memoryInstanceCache[key] = result
+                } else {
+                    memoryInstanceCache[key] = NULL_SENTINEL_OBJ
+                }
+                result
+            } catch (e: Exception) {
+                memoryInstanceCache[key] = NULL_SENTINEL_OBJ
+                null
+            }
+        }
+    }
 
     fun getMethods(loader: ClassLoader, functionCall: FunctionCall<Array<Method>>): Array<Method> =
         resolve(getKeyName(), loader, functionCall, METHODS_CODEC) {
@@ -359,10 +415,17 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
         resolve(key, loader, functionCall, MAP_FIELD_CODEC) { Exception("HashMap is null") }
 
     // The key is the name of the Unobfuscator method that requested the value.
-    private fun getKeyName(): String =
-        Thread.currentThread().stackTrace
-            .firstOrNull { it.className == Unobfuscator::class.java.name }
-            ?.methodName ?: ""
+    // Scans only top 10 frames of Throwable stack trace to avoid full JVM thread dumps.
+    private fun getKeyName(): String {
+        val stack = Throwable().stackTrace
+        for (i in 1 until minOf(stack.size, 10)) {
+            val element = stack[i]
+            if (element.className == Unobfuscator::class.java.name) {
+                return element.methodName
+            }
+        }
+        return ""
+    }
 
     // ==================== Simples ====================
 
@@ -528,7 +591,7 @@ class UnobfuscatorCache private constructor(private val mApplication: Applicatio
         private const val NAMESPACE_HOOKS = UnobfuscatorCacheDataStore.NAMESPACE_HOOKS
         private const val NAMESPACE_STRINGS = UnobfuscatorCacheDataStore.NAMESPACE_STRINGS
         private const val NAMESPACE_REFLECTION = UnobfuscatorCacheDataStore.NAMESPACE_REFLECTION
-        private const val CACHE_SCHEMA_VERSION = 3
+        private const val CACHE_SCHEMA_VERSION = 4
         private const val NULL_SENTINEL = "__NULL__"
         private const val REVERSE_MAP_KEY = "__reverse_map__"
 

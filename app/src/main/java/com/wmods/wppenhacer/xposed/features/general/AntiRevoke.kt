@@ -33,7 +33,8 @@ class AntiRevoke(loader: ClassLoader, preferences: SharedPreferences) :
     Feature(loader, preferences) {
 
     companion object {
-        private val messageRevokedMap = ConcurrentHashMap<String, MutableSet<String>>()
+        private val allRevokedMessageIds = ConcurrentHashMap.newKeySet<String>()
+        private var cachedDeletedPrefix: String? = null
 
         private val dateFormatThreadLocal = ThreadLocal.withInitial {
             DateFormat.getDateTimeInstance(
@@ -43,10 +44,19 @@ class AntiRevoke(loader: ClassLoader, preferences: SharedPreferences) :
             )
         }
 
-        private val originalMessageKeyCache = ConcurrentHashMap<Long, String>()
         private val revokedTimestampCache = ConcurrentHashMap<String, Long>()
-        private val loadedRevokedJids = ConcurrentHashMap.newKeySet<String>()
-        private val loadingRevokedJids = ConcurrentHashMap.newKeySet<String>()
+
+        private fun getDeletedPrefix(): String {
+            return cachedDeletedPrefix ?: run {
+                val p = try {
+                    UnobfuscatorCache.getInstance().getString("messagedeleted").ifEmpty { "Message deleted" }
+                } catch (_: Throwable) {
+                    "Message deleted"
+                }
+                cachedDeletedPrefix = p
+                p
+            }
+        }
 
         private fun findObjectFMessage(param: HookParam): FMessageWpp? {
             val safeArgs = param.args?.filterNotNull() ?: return null
@@ -56,46 +66,27 @@ class AntiRevoke(loader: ClassLoader, preferences: SharedPreferences) :
             return statusItem.fMessage
         }
 
-
-        private fun getRevokedMessagesForJid(fMessage: FMessageWpp): MutableSet<String> {
-            val stripJID =
-                fMessage.key.remoteJid.phoneNumber ?: return Collections.synchronizedSet(HashSet())
-            return messageRevokedMap.computeIfAbsent(stripJID) {
-                Collections.synchronizedSet(HashSet())
-            }
-        }
-
-        private fun loadRevokedMessagesForJid(fMessage: FMessageWpp) {
-            val stripJID = fMessage.key.remoteJid.phoneNumber ?: return
-            if (!loadedRevokedJids.add(stripJID)) return
-            try {
-                getRevokedMessagesForJid(fMessage).addAll(
-                    DelMessageStore.getInstance(Utils.application).getMessagesByJid(stripJID)
-                )
-            } catch (t: Throwable) {
-                loadedRevokedJids.remove(stripJID)
-                throw t
-            }
-        }
-
-        private fun ensureRevokedMessagesLoaded(fMessage: FMessageWpp) {
-            val stripJID = fMessage.key.remoteJid.phoneNumber ?: return
-            if (loadedRevokedJids.contains(stripJID) || !loadingRevokedJids.add(stripJID)) return
-            Utils.databaseExecutor.execute {
-                try {
-                    loadRevokedMessagesForJid(fMessage)
-                } catch (t: Throwable) {
-                    YukiLog.log(t)
-                } finally {
-                    loadingRevokedJids.remove(stripJID)
+        private fun cleanDeletedPrefix(text: String, prefix: String): String {
+            var clean = text.trim()
+            val p = prefix.trim()
+            while (true) {
+                val matched = when {
+                    p.isNotEmpty() && clean.startsWith(p, ignoreCase = true) -> p
+                    clean.startsWith("Message deleted", ignoreCase = true) -> "Message deleted"
+                    clean.startsWith("Deleted message", ignoreCase = true) -> "Deleted message"
+                    else -> null
+                } ?: break
+                clean = clean.substring(matched.length).trim()
+                while (clean.startsWith("|") || clean.startsWith("•") || clean.startsWith("-")) {
+                    clean = clean.substring(1).trim()
                 }
             }
+            return clean
         }
 
         private fun persistRevokedMessage(fMessage: FMessageWpp, messageID: String) {
-            val stripJID = fMessage.key.remoteJid.phoneNumber!!
-            val messages = getRevokedMessagesForJid(fMessage)
-            messages.add(messageID)
+            allRevokedMessageIds.add(messageID)
+            val stripJID = fMessage.key.remoteJid.phoneNumber ?: return
             DelMessageStore.getInstance(Utils.application).insertMessage(
                 stripJID,
                 messageID,
@@ -107,6 +98,14 @@ class AntiRevoke(loader: ClassLoader, preferences: SharedPreferences) :
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun doHook() {
+        Utils.databaseExecutor.execute {
+            try {
+                allRevokedMessageIds.addAll(DelMessageStore.getInstance(Utils.application).getAllMessageIds())
+            } catch (t: Throwable) {
+                logDebug(t)
+            }
+        }
+
         val antiRevokeMessageMethod = Unobfuscator.loadAntiRevokeMessageMethod(classLoader)
         val unknownStatusPlaybackMethod = Unobfuscator.loadUnknownStatusPlaybackMethod(classLoader)
         val statusPlaybackClass = Unobfuscator.loadStatusPlaybackViewClass(classLoader)
@@ -217,103 +216,110 @@ class AntiRevoke(loader: ClassLoader, preferences: SharedPreferences) :
         val antirevokeValue = xprefs.getString(antirevokeType, "0")?.toIntOrNull() ?: 0
         if (antirevokeValue == 0) return
 
-        val key = fMessage.key
-        val boundMessageId = key.messageID
-        val originalMessage =
-            ReflectionUtils.getAdditionalInstanceField(dateTextView, "originalMessage") as? String
+        val boundMessageId = fMessage.key.messageID
+        val origId = fMessage.originalKey?.messageID
+        val isRevoked = allRevokedMessageIds.contains(boundMessageId) ||
+            (!origId.isNullOrEmpty() && allRevokedMessageIds.contains(origId))
+        val revokedKey = if (isRevoked) {
+            if (allRevokedMessageIds.contains(boundMessageId)) boundMessageId else origId
+        } else null
 
-        dateTextView.paint.isUnderlineText = false
-        dateTextView.setOnClickListener(null)
-        dateTextView.setCompoundDrawables(null, null, null, null)
-        if (originalMessage != null) {
-            dateTextView.text = originalMessage
+        val wasRevoked = ReflectionUtils.getAdditionalInstanceField(dateTextView, "wasRevoked") == true
+
+        if (!isRevoked || revokedKey == null) {
+            if (wasRevoked) {
+                ReflectionUtils.setAdditionalInstanceField(dateTextView, "wasRevoked", false)
+                ReflectionUtils.setAdditionalInstanceField(dateTextView, "originalMessage", null)
+                dateTextView.paint.isUnderlineText = false
+                dateTextView.setOnClickListener(null)
+                dateTextView.setCompoundDrawables(null, null, null, null)
+                val prefix = getDeletedPrefix()
+                val currentText = (dateTextView.text?.toString() ?: "").trim()
+                val cleanTime = cleanDeletedPrefix(currentText, prefix)
+                if (currentText != cleanTime) {
+                    dateTextView.text = cleanTime
+                }
+            }
+            return
         }
 
-        Utils.databaseExecutor.execute {
-            loadRevokedMessagesForJid(fMessage)
-            val messageRevokedList = getRevokedMessagesForJid(fMessage)
-            val messageId = if (messageRevokedList.contains(key.messageID)) {
-                key.messageID
-            } else {
-                val originalKey = originalMessageKeyCache[fMessage.rowId]
-                    ?: MessageStore.getInstance().getOriginalMessageKey(fMessage.rowId).also {
-                        if (it.isNotEmpty()) originalMessageKeyCache[fMessage.rowId] = it
-                    }
-                originalKey.takeIf { messageRevokedList.contains(it) }
-            }
+        ReflectionUtils.setAdditionalInstanceField(dateTextView, "wasRevoked", true)
+        val prefix = getDeletedPrefix()
+        val currentText = (dateTextView.text?.toString() ?: "").trim()
+        val cleanTime = cleanDeletedPrefix(currentText, prefix)
 
-            val timestamp = if (messageId == null) {
-                0L
-            } else {
-                revokedTimestampCache[messageId] ?: run {
-                    val loadedTimestamp = DelMessageStore.getInstance(Utils.application)
-                        .getTimestampByMessageId(messageId)
-                    if (loadedTimestamp > 0) {
-                        revokedTimestampCache[messageId] = loadedTimestamp
-                    }
-                    loadedTimestamp
-                }
-            }
-            val date = if (timestamp > 0) {
-                dateFormatThreadLocal.get()?.format(Date(timestamp))
-            } else {
-                null
-            }
+        applyRevokedUI(dateTextView, antirevokeValue, revokedKey, boundView, boundMessageId, prefix, cleanTime)
+    }
 
-            mainHandler.post {
-                if (boundView != null && !ConversationItemListener.isViewBoundToMessage(
-                        boundView,
-                        boundMessageId
-                    )
-                ) {
-                    return@post
-                }
-
-                if (messageId != null) {
-                    if (date != null) {
-                        dateTextView.paint.isUnderlineText = true
-                        dateTextView.setOnClickListener {
-                            if (boundView != null && !ConversationItemListener.isViewBoundToMessage(
-                                    boundView,
-                                    boundMessageId
-                                )
-                            ) return@setOnClickListener
-                            val toastMessage =
-                                Utils.application.getString(R.string.message_removed_on)
-                                    .format(date)
-                            Utils.showToast(toastMessage, Toast.LENGTH_LONG)
+    private fun applyRevokedUI(
+        dateTextView: TextView,
+        antirevokeValue: Int,
+        messageId: String,
+        boundView: View?,
+        boundMessageId: String,
+        prefix: String,
+        cleanTime: String
+    ) {
+        val cachedTimestamp = revokedTimestampCache[messageId]
+        if (cachedTimestamp == null) {
+            Utils.databaseExecutor.execute {
+                val loadedTimestamp = DelMessageStore.getInstance(Utils.application)
+                    .getTimestampByMessageId(messageId)
+                if (loadedTimestamp > 0) {
+                    revokedTimestampCache[messageId] = loadedTimestamp
+                    mainHandler.post {
+                        if (boundView == null || ConversationItemListener.isViewBoundToMessage(boundView, boundMessageId)) {
+                            setupTimestampClick(dateTextView, loadedTimestamp, boundView, boundMessageId)
                         }
                     }
-
-                    when (antirevokeValue) {
-                        1 -> {
-                            val messageText = originalMessage ?: dateTextView.text
-                            val newTextData = "${
-                                UnobfuscatorCache.getInstance().getString("messagedeleted")
-                            } | $messageText"
-                            dateTextView.text = newTextData
-                            ReflectionUtils.setAdditionalInstanceField(
-                                dateTextView,
-                                "originalMessage",
-                                messageText.toString()
-                            )
-                        }
-
-                        2 -> {
-                            val drawable = Utils.application.getDrawable(R.drawable.deleted)
-                            dateTextView.setCompoundDrawablesWithIntrinsicBounds(
-                                null,
-                                null,
-                                drawable,
-                                null
-                            )
-                            dateTextView.compoundDrawablePadding = 5
-                        }
-                    }
-                } else if (originalMessage != null) {
-                    dateTextView.text = originalMessage
                 }
             }
+        } else if (cachedTimestamp > 0) {
+            setupTimestampClick(dateTextView, cachedTimestamp, boundView, boundMessageId)
+        }
+
+        when (antirevokeValue) {
+            1 -> {
+                val formatted = if (cleanTime.isNotEmpty()) "$prefix | $cleanTime" else prefix
+                dateTextView.text = formatted
+                ReflectionUtils.setAdditionalInstanceField(
+                    dateTextView,
+                    "originalMessage",
+                    cleanTime
+                )
+            }
+
+            2 -> {
+                val drawable = Utils.application.getDrawable(R.drawable.deleted)
+                dateTextView.setCompoundDrawablesWithIntrinsicBounds(
+                    null,
+                    null,
+                    drawable,
+                    null
+                )
+                dateTextView.compoundDrawablePadding = 5
+            }
+        }
+    }
+
+    private fun setupTimestampClick(
+        dateTextView: TextView,
+        timestamp: Long,
+        boundView: View?,
+        boundMessageId: String
+    ) {
+        val date = dateFormatThreadLocal.get()?.format(Date(timestamp)) ?: return
+        dateTextView.paint.isUnderlineText = true
+        dateTextView.setOnClickListener {
+            if (boundView != null && !ConversationItemListener.isViewBoundToMessage(
+                    boundView,
+                    boundMessageId
+                )
+            ) return@setOnClickListener
+            val toastMessage =
+                Utils.application.getString(R.string.message_removed_on)
+                    .format(date)
+            Utils.showToast(toastMessage, Toast.LENGTH_LONG)
         }
     }
 
@@ -331,10 +337,8 @@ class AntiRevoke(loader: ClassLoader, preferences: SharedPreferences) :
 
         if (revokeBoolean == 0) return 0
 
-        ensureRevokedMessagesLoaded(fMessage)
-        val messageRevokedList = getRevokedMessagesForJid(fMessage)
-        if (!messageRevokedList.contains(messageId)) {
-            messageRevokedList.add(messageId)
+        if (!allRevokedMessageIds.contains(messageId)) {
+            allRevokedMessageIds.add(messageId)
             Utils.databaseExecutor.execute {
                 try {
                     persistRevokedMessage(fMessage, messageId)

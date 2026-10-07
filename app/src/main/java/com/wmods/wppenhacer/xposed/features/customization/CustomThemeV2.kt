@@ -115,6 +115,13 @@ class CustomThemeV2(loader: ClassLoader, preferences: SharedPreferences) :
     @Throws(Throwable::class)
     override fun doHook() {
         properties = Utils.getProperties(xprefs, "custom_css", "custom_filters")
+        val changeColorEnabled = xprefs.getBoolean("changecolor", false)
+        val customWallpaper = xprefs.getBoolean("wallpaper", false)
+        val hasCustomThemeProps = properties?.let {
+            it.getProperty("change_colors") == "true" || it.containsKey("wallpaper")
+        } ?: false
+        if (!changeColorEnabled && !customWallpaper && !hasCustomThemeProps) return
+
         hookTheme()
         hookWallpaper()
         ReflectionUtils.findClass("android.app.ActivityThread", classLoader).resolve().method {

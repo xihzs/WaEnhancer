@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.materialswitch.MaterialSwitch xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@id/switchWidget"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:clickable="false"
-    android:focusable="false" />
+    android:focusable="false"
+    app:thumbIcon="@null"
+    app:thumbTint="@color/ios_switch_thumb"
+    app:trackDecoration="@null"
+    app:trackTint="@color/ios_switch_track" />

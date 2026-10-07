@@ -119,8 +119,17 @@ class FMessageWpp(fMessage: Any?) {
         Key(keyMessage?.get(fmessage), this)
     }
 
-    val originalKey: Key by lazy {
-        Key(getOriginalMessageKey?.invoke(fmessage), this)
+    val originalKey: Key? by lazy {
+        val origKeyObj = try {
+            getOriginalMessageKey?.invoke(fmessage)
+        } catch (_: Throwable) {
+            null
+        } ?: return@lazy null
+        try {
+            Key(origKeyObj, this)
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     val isBroadcast: Boolean

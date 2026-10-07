@@ -117,10 +117,12 @@ object FeatureLoader : YukiBaseHooker() {
     }
 
     private fun createPreferences(application: Application): SharedPreferences =
-        RemotePreferences(
-            application,
-            BuildConfig.APPLICATION_ID + ".preferences",
-            BuildConfig.APPLICATION_ID + "_preferences"
+        CachedPreferences(
+            RemotePreferences(
+                application,
+                BuildConfig.APPLICATION_ID + ".preferences",
+                BuildConfig.APPLICATION_ID + "_preferences"
+            )
         )
 
     private fun supportedVersionsRes(application: Application) =
@@ -149,8 +151,12 @@ object FeatureLoader : YukiBaseHooker() {
         pref: SharedPreferences,
         versionName: String
     ) {
-        val isSupported = supportedVersions.any { versionName.startsWith(it.replace(".xx", "")) }
-        if (isSupported) return
+        val isSupported = supportedVersions.any { versionName.startsWith(it.replace(".xx", "")) } ||
+                versionName.startsWith("2.26.")
+        if (isSupported) {
+            YukiLog.log("WhatsApp version $versionName is supported.")
+            return
+        }
 
         disableExpirationVersion(application.classLoader)
         if (!pref.getBoolean("bypass_version_check", false)) {

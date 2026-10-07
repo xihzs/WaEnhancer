@@ -102,6 +102,7 @@ class CaptureDevice(classLoader: ClassLoader, xprefs: SharedPreferences) : Featu
     }
 
     private fun updateDeviceIndicator(fMessage: FMessageWpp, view: ViewGroup) {
+        if (!xprefs.getBoolean("capture_device", false)) return
         val deviceIndicator = view.findViewWithTag<ImageView>(DEVICE_TYPE_TAG)
         val messageId = fMessage.key.messageID
         val userjid = fMessage.key.remoteJid.userRawString
@@ -109,7 +110,9 @@ class CaptureDevice(classLoader: ClassLoader, xprefs: SharedPreferences) : Featu
             userjid,
             messageId
         ) {
-            ConversationItemListener.notifyDataSetChanged()
+            if (ConversationItemListener.isViewBoundToMessage(view, messageId)) {
+                updateDeviceIndicator(fMessage, view)
+            }
         }
 
         if (deviceTypeValue == null) {

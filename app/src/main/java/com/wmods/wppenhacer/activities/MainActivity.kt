@@ -39,10 +39,8 @@ class MainActivity : BaseActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
 
         binding.viewPager.adapter = MainPagerAdapter(this)
-        binding.viewPager.setPageTransformer(DepthPageTransformer())
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         if (!prefs.getBoolean("call_recording_enable", false)) {
@@ -107,6 +105,12 @@ class MainActivity : BaseActivity() {
         createMainDir()
         FilePicker.registerFilePicker(this)
         handleIncomingIntent(intent)
+    }
+
+    fun navigateToTab(position: Int) {
+        if (position in 0..5) {
+            binding.viewPager.setCurrentItem(position, true)
+        }
     }
 
     private fun createMainDir() {
@@ -201,6 +205,24 @@ class MainActivity : BaseActivity() {
             menu.findItem(R.id.batteryoptimization).isVisible = false
         }
         return true
+    }
+
+    fun openSearch() {
+        val options = ActivityOptionsCompat.makeCustomAnimation(
+            this,
+            R.anim.slide_in_right,
+            R.anim.slide_out_left
+        )
+        startActivity(Intent(this, SearchActivity::class.java), options.toBundle())
+    }
+
+    fun openAbout() {
+        val options = ActivityOptionsCompat.makeCustomAnimation(
+            this,
+            R.anim.slide_in_right,
+            R.anim.slide_out_left
+        )
+        startActivity(Intent(this, AboutActivity::class.java), options.toBundle())
     }
 
     @SuppressLint("BatteryLife")

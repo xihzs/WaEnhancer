@@ -89,15 +89,55 @@
     </style>
 
     <style name="BottomNavStyle" parent="Widget.Material3.BottomNavigationView">
-        <item name="itemActiveIndicatorStyle">@style/NavActiveIndicator</item>
+        <item name="itemActiveIndicatorStyle">@style/IosNavNoIndicator</item>
         <item name="labelVisibilityMode">labeled</item>
-        <item name="android:minHeight">@dimen/nav_bar_height</item>
-        <item name="elevation">@dimen/card_elevation_high</item>
+        <item name="android:minHeight">54dp</item>
+        <item name="elevation">0dp</item>
+        <item name="itemIconSize">22dp</item>
+        <item name="itemTextAppearanceActive">@style/IosNavTextAppearance</item>
+        <item name="itemTextAppearanceInactive">@style/IosNavTextAppearance</item>
     </style>
 
     <style name="NavActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">?colorPrimaryContainer</item>
+        <item name="android:color">@android:color/transparent</item>
         <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Full</item>
     </style>
 
+    <style name="IosBottomNavStyle" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemActiveIndicatorStyle">@style/IosNavNoIndicator</item>
+        <item name="labelVisibilityMode">labeled</item>
+        <item name="android:minHeight">54dp</item>
+        <item name="elevation">0dp</item>
+        <item name="itemIconSize">22dp</item>
+        <item name="itemTextAppearanceActive">@style/IosNavTextAppearance</item>
+        <item name="itemTextAppearanceInactive">@style/IosNavTextAppearance</item>
+    </style>
+
+    <style name="IosNavNoIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+    </style>
+
+    <style name="IosNavTextAppearance" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">10sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="IosNavBarTitleStyle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/ios_label_primary</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="IosSectionHeader">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/ios_label_tertiary</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:paddingTop">16dp</item>
+    </style>
 </resources>

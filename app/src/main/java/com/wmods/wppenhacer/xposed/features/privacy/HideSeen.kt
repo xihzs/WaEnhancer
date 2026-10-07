@@ -29,32 +29,20 @@ class HideSeen(loader: ClassLoader, preferences: SharedPreferences) :
         }
     }
 
-    private var hideReceipt = false
-    private var ghostMode = false
-    private var hideRead = false
-    private var hideAudioSeen = false
-    private var hideOnceSeen = false
-    private var hideReadGroup = false
-    private var hideStatusView = false
+    private val ghostMode: Boolean get() = WppCore.getPrivBoolean("ghostmode", false)
+    private val hideRead: Boolean get() = xprefs.getBoolean("hideread", false)
+    private val hideAudioSeen: Boolean get() = xprefs.getBoolean("hideaudioseen", false)
+    private val hideOnceSeen: Boolean get() = xprefs.getBoolean("hideonceseen", false)
+    private val hideReadGroup: Boolean get() = xprefs.getBoolean("hideread_group", false)
+    private val hideStatusView: Boolean get() = xprefs.getBoolean("hidestatusview", false)
+    private val hideReceipt: Boolean get() = xprefs.getBoolean("hidereceipt", false)
 
     override fun doHook() {
-        loadPreferences()
         hookSendReadReceiptJob()
         hookReceiptMethod()
         hookSenderPlayed()
         hookSenderPlayedBusiness()
         hookEnforceHiding()
-    }
-
-    private fun loadPreferences() {
-        ghostMode = WppCore.getPrivBoolean("ghostmode", false)
-        hideRead = xprefs.getBoolean("hideread", false)
-        hideAudioSeen = xprefs.getBoolean("hideaudioseen", false)
-        hideOnceSeen = xprefs.getBoolean("hideonceseen", false)
-        hideReadGroup = xprefs.getBoolean("hideread_group", false)
-        hideStatusView = xprefs.getBoolean("hidestatusview", false)
-        hideReceipt = xprefs.getBoolean("hidereceipt", false)
-
     }
 
     private fun hookEnforceHiding() {

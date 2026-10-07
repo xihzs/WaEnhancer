@@ -27,6 +27,7 @@ import com.wmods.wppenhacer.xposed.utils.CDSharedPreferences
 import com.wmods.wppenhacer.xposed.utils.ReflectionUtils
 import com.wmods.wppenhacer.xposed.utils.Utils
 import com.wmods.wppenhacer.xposed.utils.YukiLog
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.luckypray.dexkit.query.enums.StringMatchType
@@ -223,35 +224,32 @@ object WppCore {
     }
 
     fun initBridge(context: Context) {
-        val cache = UnobfuscatorCache.getInstance()
-        val preferredOrder = cache.getHookInt("preferredOrder", 1)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + com.wmods.wppenhacer.xposed.utils.WaeCoroutineExceptionHandler).launch {
+            val cache = UnobfuscatorCache.getInstance()
+            val preferredOrder = cache.getHookInt("preferredOrder", 1)
 
-        val primaryClient =
-            if (preferredOrder == 0) ProviderClientKt() else BridgeClientKt(context)
-        val fallbackClient =
-            if (preferredOrder == 0) BridgeClientKt(context) else ProviderClientKt()
+            val primaryClient =
+                if (preferredOrder == 0) ProviderClientKt() else BridgeClientKt(context)
+            val fallbackClient =
+                if (preferredOrder == 0) BridgeClientKt(context) else ProviderClientKt()
 
-        if (tryConnectBridge(primaryClient)) return
+            if (connectBridgeAsync(primaryClient)) return@launch
 
-        if (tryConnectBridge(fallbackClient)) {
-            val newPreferredOrder = if (preferredOrder == 0) 1 else 0
-            cache.putHookInt("preferredOrder", newPreferredOrder)
-            return
+            if (connectBridgeAsync(fallbackClient)) {
+                val newPreferredOrder = if (preferredOrder == 0) 1 else 0
+                cache.putHookInt("preferredOrder", newPreferredOrder)
+                return@launch
+            }
+            YukiLog.log("Bridge not connected, continuing without it")
         }
-        YukiLog.log("Bridge not connected, continuing without it")
     }
 
-    @JvmStatic
-    @Throws(Exception::class)
-    private fun tryConnectBridge(baseClient: BaseClient): Boolean {
+    private suspend fun connectBridgeAsync(baseClient: BaseClient): Boolean {
         return try {
             YukiLog.log("Trying to connect to ${baseClient.javaClass.simpleName}")
             client = baseClient
-            runBlocking {
-                val canLoad = baseClient.connect()
-                if (!canLoad) throw Exception()
-                true
-            }
+            val canLoad = baseClient.connect()
+            canLoad
         } catch (_: Exception) {
             false
         }

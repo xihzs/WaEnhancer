@@ -39,14 +39,6 @@ class ProviderClientKt : BaseClient() {
         if (service?.asBinder()?.pingBinder() == true) {
             return@withContext true
         }
-        runCatching {
-            val intent = Intent().apply {
-                component =
-                    ComponentName(BuildConfig.APPLICATION_ID, ForceStartActivity::class.java.name)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-            }
-            WppCore.getCurrentActivity()?.startActivity(intent)
-        }
 
         try {
             withTimeout(3000L.milliseconds) {

@@ -11,14 +11,13 @@ class ViewOnce(loader: ClassLoader, preferences: SharedPreferences) :
     Feature(loader, preferences) {
 
     override fun doHook() {
-        if (!xprefs.getBoolean("viewonce", false)) return
-
         val methods = loadViewOnceMethod(classLoader)
 
         methods.forEach { method ->
             logDebug(getMethodDescriptor(method))
             method.hook {
                 before {
+                    if (!xprefs.getBoolean("viewonce", false)) return@before
                     val returnValue = args[0] as Int
                     val fMessage = FMessageWpp(instance)
                     if (returnValue == 1 && !fMessage.key.isFromMe) {
@@ -27,7 +26,6 @@ class ViewOnce(loader: ClassLoader, preferences: SharedPreferences) :
                 }
             }
         }
-
     }
 
     override fun getPluginName(): String {

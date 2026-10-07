@@ -21,60 +21,23 @@ class DownloadViewOnce(classLoader: ClassLoader, preferences: SharedPreferences)
     Feature(classLoader, preferences) {
 
     override fun doHook() {
-        if (xprefs.getBoolean("downloadviewonce", false)) {
-            val menuMethod = loadViewOnceDownloadMenuMethod(classLoader)
-            // Media Activity
-            menuMethod.hook {
-                after {
-                    val fmessageObj: Any? = ReflectionUtils.getArg(args, FMessageWpp.TYPE, 0)
-                    val fMessage = FMessageWpp(fmessageObj)
+        val menuMethod = loadViewOnceDownloadMenuMethod(classLoader)
+        // Media Activity
+        menuMethod.hook {
+            after {
+                if (!xprefs.getBoolean("downloadviewonce", false)) return@after
+                val fmessageObj: Any? = ReflectionUtils.getArg(args, FMessageWpp.TYPE, 0)
+                val fMessage = FMessageWpp(fmessageObj)
 
-                    // check media is view once
-                    if (!fMessage.isViewOnce) return@after
-                    val menu = ReflectionUtils.getArg(args, Menu::class.java, 0)
-                    val item = menu!!.add(0, 0, 0, R.string.download).setIcon(R.drawable.download)
-                    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                    item.setOnMenuItemClickListener {
-                        CompletableFuture.runAsync {
-                            try {
-                                val file = fMessage.mediaFile
-                                if (file == null) {
-                                    Utils.showToast(
-                                        Utils.application
-                                            .getString(R.string.download_not_available), 1
-                                    )
-                                    return@runAsync
-                                }
-                                downloadFile(fMessage.key.remoteJid, file)
-                            } catch (e: Exception) {
-                                Utils.showToast(e.message, Toast.LENGTH_LONG)
-                            }
-                        }
-                        true
-                    }
-                }
-            }
-            // View Once Activity
-            viewOnceViewerActivityClass.resolve().firstMethod {
-                name = "onCreateOptionsMenu"
-                superclass()
-                parameters(classLoader.loadClass("android.view.Menu"))
-            }.hook {
-                after {
-                    val menu = args[0] as Menu
-                    val item = menu.add(0, 0, 0, R.string.download).setIcon(R.drawable.download)
-                    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                    item.setOnMenuItemClickListener {
-                        CompletableFuture.runAsync {
-                            val keyClass: Class<*> = FMessageWpp.Key.TYPE
-                            val fieldType = ReflectionUtils.getFieldByType(
-                                instance.javaClass,
-                                keyClass
-                            )
-                            val keyMessageObj =
-                                ReflectionUtils.getObjectField(fieldType, instance)
-                            val fmessage = FMessageWpp.Key(keyMessageObj).fMessage
-                            val file = fmessage!!.mediaFile
+                // check media is view once
+                if (!fMessage.isViewOnce) return@after
+                val menu = ReflectionUtils.getArg(args, Menu::class.java, 0)
+                val item = menu!!.add(0, 0, 0, R.string.download).setIcon(R.drawable.download)
+                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                item.setOnMenuItemClickListener {
+                    CompletableFuture.runAsync {
+                        try {
+                            val file = fMessage.mediaFile
                             if (file == null) {
                                 Utils.showToast(
                                     Utils.application
@@ -82,14 +45,51 @@ class DownloadViewOnce(classLoader: ClassLoader, preferences: SharedPreferences)
                                 )
                                 return@runAsync
                             }
-                            try {
-                                downloadFile(fmessage.key.remoteJid, file)
-                            } catch (e: Exception) {
-                                Utils.showToast(e.message, Toast.LENGTH_LONG)
-                            }
+                            downloadFile(fMessage.key.remoteJid, file)
+                        } catch (e: Exception) {
+                            Utils.showToast(e.message, Toast.LENGTH_LONG)
                         }
-                        true
                     }
+                    true
+                }
+            }
+        }
+        // View Once Activity
+        viewOnceViewerActivityClass.resolve().firstMethod {
+            name = "onCreateOptionsMenu"
+            superclass()
+            parameters(classLoader.loadClass("android.view.Menu"))
+        }.hook {
+            after {
+                if (!xprefs.getBoolean("downloadviewonce", false)) return@after
+                val menu = args[0] as Menu
+                val item = menu.add(0, 0, 0, R.string.download).setIcon(R.drawable.download)
+                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                item.setOnMenuItemClickListener {
+                    CompletableFuture.runAsync {
+                        val keyClass: Class<*> = FMessageWpp.Key.TYPE
+                        val fieldType = ReflectionUtils.getFieldByType(
+                            instance.javaClass,
+                            keyClass
+                        )
+                        val keyMessageObj =
+                            ReflectionUtils.getObjectField(fieldType, instance)
+                        val fmessage = FMessageWpp.Key(keyMessageObj).fMessage
+                        val file = fmessage!!.mediaFile
+                        if (file == null) {
+                            Utils.showToast(
+                                Utils.application
+                                    .getString(R.string.download_not_available), 1
+                            )
+                            return@runAsync
+                        }
+                        try {
+                            downloadFile(fmessage.key.remoteJid, file)
+                        } catch (e: Exception) {
+                            Utils.showToast(e.message, Toast.LENGTH_LONG)
+                        }
+                    }
+                    true
                 }
             }
         }

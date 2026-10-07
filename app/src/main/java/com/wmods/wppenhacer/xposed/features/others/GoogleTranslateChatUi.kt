@@ -425,6 +425,21 @@ internal class GoogleTranslateChatUi(
 
     private fun bind(message: FMessageWpp, root: ViewGroup) {
         bound.remove(root)
+        if (message.key.isFromMe) return
+        val chat = messageChat(message) ?: return
+        val selection = config(chat)
+        if (!selection.enabled || selection.source == selection.target) {
+            if (renderedViews.isNotEmpty()) {
+                val directTextView = root.findViewById<TextView>(Utils.getID("message_text", "id"))
+                if (directTextView != null) {
+                    renderedViews.remove(directTextView)?.let {
+                        if (directTextView.text.toString() == it.rendered) directTextView.text = it.original
+                    }
+                }
+            }
+            return
+        }
+
         val text = message.messageStr?.takeIf { it.isNotBlank() && it.length <= 4000 } ?: return
         val textView = messageTextView(root, text) ?: run {
             reportOnce("Message text view unavailable (${root.javaClass.simpleName})"); return
@@ -432,10 +447,7 @@ internal class GoogleTranslateChatUi(
         // Restore only our own output; WhatsApp may already have rebound this recycled view.
         renderedViews.remove(textView)
             ?.let { if (textView.text.toString() == it.rendered) textView.text = it.original }
-        if (message.key.isFromMe) return
-        val chat = messageChat(message) ?: run { reportOnce("Message chat ID unavailable"); return }
-        val selection = config(chat)
-        if (!selection.enabled || selection.source == selection.target) return
+
         val request =
             RequestKey(chat, message.key.messageID, text, selection.source, selection.target)
         bound[root] = request

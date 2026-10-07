@@ -18,7 +18,7 @@ android {
     namespace = "com.wmods.wppenhacer"
     //noinspection GradleDependency
     compileSdk = 37
-    ndkVersion = "28.2.13676358"
+    ndkVersion = "26.1.10909125"
 
     flavorDimensions += "version"
 
@@ -61,7 +61,7 @@ android {
             abiFilters.add("arm64-v8a")
         }
 
-        buildConfigField("Boolean", "RESET_ON_INSTALL", "true")
+        buildConfigField("Boolean", "RESET_ON_INSTALL", "false")
 
     }
 

@@ -98,8 +98,6 @@ class MediaPreview(
     private var lastProgressPostAt = 0L
 
     override fun doHook() {
-        if (!xprefs.getBoolean("media_preview", true)) return
-
         Others.propsBoolean[24205] = false
 
         val layoutClass = Unobfuscator.loadLayoutClass(classLoader)
@@ -109,6 +107,7 @@ class MediaPreview(
             emptyParameters()
         }.hook {
             after {
+                if (!xprefs.getBoolean("media_preview", true)) return@after
                 if (!layoutClass.isInstance(instance)) return@after
                 val view = instance as View
                 view.postDelayed(

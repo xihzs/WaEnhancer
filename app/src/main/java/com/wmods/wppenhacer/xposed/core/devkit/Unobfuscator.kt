@@ -219,10 +219,10 @@ object Unobfuscator {
                 "HandleMeComposing/sendComposing"
             )
                 ?: throw Exception("GhostMode method not found")
-            if (method.parameterTypes.size > 2 && method.parameterTypes[2] == Int::class.java) {
+            if (method.parameterTypes.any { it == Int::class.java || it == java.lang.Integer.TYPE || it == Int::class.javaObjectType }) {
                 return@getMethod method
             }
-            throw Exception("GhostMode method not found parameter type")
+            return@getMethod method
         }
     }
 
@@ -2735,13 +2735,13 @@ object Unobfuscator {
         }
     }
 
-    fun loadVideoTranscoderStartMethod(classLoader: ClassLoader): Method {
-        return UnobfuscatorCache.getInstance().getMethod(classLoader) {
+    fun loadVideoTranscoderStartMethod(classLoader: ClassLoader): Method? {
+        return UnobfuscatorCache.getInstance().getMethodOrNull(classLoader) {
             findFirstMethodUsingStrings(
                 classLoader,
                 StringMatchType.Contains,
                 "VideoTranscoder/transcodeVideoNew/"
-            )!!
+            )
         }
     }
 

@@ -23,7 +23,7 @@ open class BaseActivity : AppCompatActivity() {
         val colorMode = prefs.getString("wae_color_mode", "preset")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && colorMode == "monet") return
 
-        val colorPreset = prefs.getString("wae_color_preset", "green")
+        val colorPreset = prefs.getString("wae_color_preset", "blue")
         theme.applyStyle(resolveColorOverlay(colorPreset), true)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             theme.applyStyle(R.style.ThemeOverlay_LegacyTextColors, true)
@@ -31,12 +31,11 @@ open class BaseActivity : AppCompatActivity() {
     }
 
     private fun resolveColorOverlay(colorPreset: String?): Int = when (colorPreset) {
-        "blue" -> R.style.ThemeOverlay_MaterialBlue
         "cyan" -> R.style.ThemeOverlay_MaterialCyan
         "purple" -> R.style.ThemeOverlay_MaterialPurple
         "orange" -> R.style.ThemeOverlay_MaterialOrange
         "red" -> R.style.ThemeOverlay_MaterialRed
         "pink" -> R.style.ThemeOverlay_MaterialPink
-        else -> R.style.ThemeOverlay_MaterialGreen
+        else -> R.style.ThemeOverlay_MaterialBlue
     }
 }

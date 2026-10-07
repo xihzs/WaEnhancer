@@ -12,15 +12,14 @@ import com.wmods.wppenhacer.xposed.utils.ReflectionUtils
 class HideChat(loader: ClassLoader, preferences: SharedPreferences) : Feature(loader, preferences) {
 
     override fun doHook() {
-        if (xprefs.getString("typearchive", "0") != "0") {
+        val loadArchiveChatClass = Unobfuscator.loadArchiveChatClass(classLoader)
 
-            val loadArchiveChatClass = Unobfuscator.loadArchiveChatClass(classLoader)
+        val viewField =
+            ReflectionUtils.getFieldByType(loadArchiveChatClass, View::class.java) ?: return
 
-            val viewField =
-                ReflectionUtils.getFieldByType(loadArchiveChatClass, View::class.java) ?: return
-
-            loadArchiveChatClass.resolve().constructor { }.hookAll {
-                after {
+        loadArchiveChatClass.resolve().constructor { }.hookAll {
+            after {
+                if (xprefs.getString("typearchive", "0") != "0") {
                     val currentActivity = WppCore.getCurrentActivity() ?: return@after
                     viewField.set(instance, HideView(currentActivity))
                 }

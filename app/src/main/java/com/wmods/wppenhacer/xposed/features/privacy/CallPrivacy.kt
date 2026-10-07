@@ -18,6 +18,8 @@ class CallPrivacy(loader: ClassLoader, preferences: SharedPreferences) :
     Feature(loader, preferences) {
 
     private var mVoipManager: Any? = null
+    private val callPrivacyType get() = xprefs.getString("call_privacy", "0")!!.toInt()
+    private val callRejectType get() = xprefs.getString("call_type", null) ?: "no_internet"
 
     override fun doHook() {
         val voipManagerClass = Unobfuscator.loadVoipManager(classLoader)
@@ -32,8 +34,6 @@ class CallPrivacy(loader: ClassLoader, preferences: SharedPreferences) :
         val rejectCallMethod = clazzVoip.declaredMethods.first { it.name == "rejectCall" }
 
         val onCallReceivedMethod = Unobfuscator.loadAntiRevokeOnCallReceivedMethod(classLoader)
-        val callPrivacyType = xprefs.getString("call_privacy", "0")!!.toInt()
-        val callRejectType = xprefs.getString("call_type", null) ?: "no_internet"
 
         onCallReceivedMethod.hook {
             before {

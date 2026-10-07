@@ -64,4 +64,9 @@ class DelMessageStore private constructor(private val context: Context) {
         }
     }
 
+    fun getAllMessageIds(): List<String> {
+        return safeDbCall(emptyList()) {
+            dao.getAllMessageIds()
+        }
+    }
 }

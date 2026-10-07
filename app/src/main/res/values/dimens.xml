@@ -3,14 +3,15 @@
     <dimen name="tab_layout_height">48dp</dimen>
     <dimen name="home_primary_elevation">8dp</dimen>
 
-    <dimen name="card_radius_small">12dp</dimen>
-    <dimen name="card_radius_medium">16dp</dimen>
-    <dimen name="card_radius_large">20dp</dimen>
-    <dimen name="card_radius_xl">24dp</dimen>
+    <dimen name="card_radius_small">6dp</dimen>
+    <dimen name="card_radius_medium">8dp</dimen>
+    <dimen name="card_radius_large">10dp</dimen>
+    <dimen name="card_radius_pill">999dp</dimen>
 
-    <dimen name="card_elevation_low">2dp</dimen>
-    <dimen name="card_elevation_medium">4dp</dimen>
-    <dimen name="card_elevation_high">8dp</dimen>
+    <dimen name="card_elevation_none">0dp</dimen>
+    <dimen name="card_elevation_low">1dp</dimen>
+    <dimen name="card_elevation_medium">2dp</dimen>
+    <dimen name="card_elevation_high">4dp</dimen>
 
     <dimen name="spacing_xs">4dp</dimen>
     <dimen name="spacing_small">8dp</dimen>

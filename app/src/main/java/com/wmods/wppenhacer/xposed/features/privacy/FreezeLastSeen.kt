@@ -10,15 +10,16 @@ class FreezeLastSeen(loader: ClassLoader, preferences: SharedPreferences) :
     Feature(loader, preferences) {
 
     override fun doHook() {
-        val freezeLastSeen = xprefs.getBoolean("freezelastseen", false)
-        val freezeLastSeenOption = getPrivBoolean("freezelastseen", false)
-        val ghostmode = getPrivBoolean("ghostmode", false) && xprefs.getBoolean("ghostmode", false)
-
-        if (freezeLastSeen || freezeLastSeenOption || ghostmode) {
-            val method = loadFreezeSeenMethod(classLoader)
-            logDebug(getMethodDescriptor(method))
-            method.hook {
-                replaceUnit { }
+        val method = loadFreezeSeenMethod(classLoader)
+        logDebug(getMethodDescriptor(method))
+        method.hook {
+            before {
+                val freezeLastSeen = xprefs.getBoolean("freezelastseen", false)
+                val freezeLastSeenOption = getPrivBoolean("freezelastseen", false)
+                val ghostmode = getPrivBoolean("ghostmode", false) && xprefs.getBoolean("ghostmode", false)
+                if (freezeLastSeen || freezeLastSeenOption || ghostmode) {
+                    result = null
+                }
             }
         }
     }

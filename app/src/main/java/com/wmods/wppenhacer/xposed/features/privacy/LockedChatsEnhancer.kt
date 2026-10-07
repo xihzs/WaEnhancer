@@ -17,14 +17,13 @@ class LockedChatsEnhancer(classLoader: ClassLoader, preferences: SharedPreferenc
     private var chatCache: Any? = null
 
     override fun doHook() {
-        if (!xprefs.getBoolean("lockedchats_enhancer", false)) return
-
         val jidNotifications = loadNotificationMethod(classLoader)
         val lockedChatsMethod = loadLockedChatsMethod(classLoader)
         val suppressLockedChats = ThreadLocal.withInitial { false }
 
         jidNotifications.hook {
             before {
+                if (!xprefs.getBoolean("lockedchats_enhancer", false)) return@before
                 suppressLockedChats.set(true)
             }
             after {

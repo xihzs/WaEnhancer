@@ -26,10 +26,9 @@ class TagMessage(loader: ClassLoader, preferences: SharedPreferences) :
         val forwardClass = loadForwardClassMethod(classLoader)
         logDebug("ForwardClass: " + forwardClass.name)
 
-        if (!xprefs.getBoolean("hidetag", false)) return
-
         method.hook {
             before {
+                if (!xprefs.getBoolean("hidetag", false)) return@before
                 val arg = args[0] as Long
                 if (arg == 1L) {
                     if (ReflectionUtils.isCalledFromClass(forwardClass)) {
@@ -39,9 +38,7 @@ class TagMessage(loader: ClassLoader, preferences: SharedPreferences) :
             }
         }
 
-        if (xprefs.getBoolean("broadcast_tag", false)) {
-            hookBroadcastView()
-        }
+        hookBroadcastView()
     }
 
     private fun hookBroadcastView() {
@@ -52,6 +49,7 @@ class TagMessage(loader: ClassLoader, preferences: SharedPreferences) :
                 position: Int,
                 convertView: View?
             ) {
+                if (!xprefs.getBoolean("broadcast_tag", false)) return
                 if (fMessage.key.isFromMe) return
                 val dateTextView = view.findViewById<TextView>(Utils.getID("date", "id")) ?: return
                 val dateWrapper = dateTextView.parent as ViewGroup

@@ -27,8 +27,6 @@ class GroupAdmin(classLoader: ClassLoader, preferences: SharedPreferences) :
     private var nameInGroupTvId: Int = -1
 
     override fun doHook() {
-        if (!xprefs.getBoolean("admin_grp", false)) return
-
         val jidFactory = Unobfuscator.loadJidFactory(classLoader)
         val grpcheckAdmin = Unobfuscator.loadGroupCheckAdminMethod(classLoader)
         nameInGroupId = Utils.getID("name_in_group", "id")
@@ -42,6 +40,7 @@ class GroupAdmin(classLoader: ClassLoader, preferences: SharedPreferences) :
                 position: Int,
                 convertView: View?
             ) {
+                if (!xprefs.getBoolean("admin_grp", false)) return
                 try {
                     val chatCurrentJid = WppCore.getCurrentUserJid()
                     if (chatCurrentJid == null || !chatCurrentJid.isGroup) return

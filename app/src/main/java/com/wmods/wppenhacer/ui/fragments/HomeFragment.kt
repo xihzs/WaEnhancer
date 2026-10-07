@@ -37,6 +37,7 @@ import com.wmods.wppenhacer.xposed.utils.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.wmods.wppenhacer.activities.MainActivity
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
@@ -81,10 +82,33 @@ class HomeFragment : BaseFragment() {
 
         checkStateWpp(requireActivity())
 
+        binding.openWppBtn.setOnClickListener { view ->
+            animateClick(view)
+            val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(FeatureLoader.PACKAGE_WPP)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launchIntent)
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.app_not_installed), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.openBusinessBtn.setOnClickListener { view ->
+            animateClick(view)
+            val launchIntent = requireContext().packageManager.getLaunchIntentForPackage(FeatureLoader.PACKAGE_BUSINESS)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launchIntent)
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.app_not_installed), Toast.LENGTH_SHORT).show()
+            }
+        }
+
         binding.rebootBtn.setOnClickListener { view ->
             animateClick(view)
             App.instance.restartApp(FeatureLoader.PACKAGE_WPP)
-            disableWpp()
+            resetWppStateToStandby()
+            Toast.makeText(requireContext(), "${getString(R.string.rebooting)} WhatsApp...", Toast.LENGTH_SHORT).show()
         }
 
         binding.scrollDiagBtn.setOnClickListener { view ->
@@ -99,7 +123,8 @@ class HomeFragment : BaseFragment() {
         binding.rebootBtn2.setOnClickListener { view ->
             animateClick(view)
             App.instance.restartApp(FeatureLoader.PACKAGE_BUSINESS)
-            disableBusiness()
+            resetBusinessStateToStandby()
+            Toast.makeText(requireContext(), "${getString(R.string.rebooting)} Business...", Toast.LENGTH_SHORT).show()
         }
 
         binding.exportBtn.setOnClickListener { view ->
@@ -117,17 +142,25 @@ class HomeFragment : BaseFragment() {
             resetConfigs(requireContext())
         }
 
-        binding.updateCard.setOnClickListener { view ->
-            animateClick(view)
-            Utils.openLink(requireActivity(), "https://t.me/waenhancher")
-        }
-
         binding.diagBtn.setOnClickListener { view ->
             animateClick(view)
             showDiagnosticsDialog()
         }
 
-        checkForUpdates()
+        binding.btnSearch.setOnClickListener {
+            (activity as? MainActivity)?.openSearch()
+        }
+
+        binding.btnAbout.setOnClickListener {
+            (activity as? MainActivity)?.openAbout()
+        }
+
+        binding.layoutStatusBadge.setOnClickListener {
+            showDiagnosticsDialog()
+        }
+
+        setupQuickControls()
+        setupSubsystemNavigation()
         startCardAnimations()
 
         return binding.root
@@ -156,12 +189,6 @@ class HomeFragment : BaseFragment() {
             if (!isAdded || _binding == null) return@postDelayed
             binding.infoCard.startAnimation(fadeIn)
         }, 300)
-
-        binding.updateCard.postDelayed({
-            if (!isAdded || _binding == null) return@postDelayed
-            val anim = AnimationUtils.loadAnimation(requireContext(), R.anim.slide_up)
-            binding.updateCard.startAnimation(anim)
-        }, 400)
     }
 
     private fun animateClick(view: View) {
@@ -173,40 +200,40 @@ class HomeFragment : BaseFragment() {
         super.onResume()
         setDisplayHomeAsUpEnabled(false)
         updatePackageStatuses(requireContext())
+        syncQuickControlsState()
     }
 
     private fun receiverBroadcastBusiness(context: Context, intent: Intent) {
-        if (App.isOriginalPackage) binding.status3.visibility = View.VISIBLE
+        binding.status3.visibility = View.VISIBLE
         binding.statusTitle3.setText(R.string.business_in_background)
         val version = intent.getStringExtra("VERSION")
         val supportedList =
             context.resources.getStringArray(R.array.supported_versions_business).toList()
         if (isSupportedVersion(version, supportedList)) {
-            binding.statusSummary3.text = getString(R.string.version_s, version)
-            binding.status3.getChildAt(0).setBackgroundResource(R.drawable.gradient_success)
+            binding.statusSummary3.text = getString(R.string.version_s, version) + " · In Memory & Hooked"
         } else {
             binding.statusSummary3.text = getString(R.string.version_s_not_listed, version)
-            binding.status3.getChildAt(0).setBackgroundResource(R.drawable.gradient_warning)
         }
         binding.rebootBtn2.visibility = View.VISIBLE
+        binding.openBusinessBtn.visibility = View.VISIBLE
         binding.statusSummary3.visibility = View.VISIBLE
         binding.statusIcon3.setImageResource(R.drawable.ic_round_check_circle_24)
     }
 
     private fun receiverBroadcastWpp(context: Context, intent: Intent) {
+        binding.status2.visibility = View.VISIBLE
         binding.statusTitle2.setText(R.string.whatsapp_in_background)
         val version = intent.getStringExtra("VERSION")
         val supportedList =
             context.resources.getStringArray(R.array.supported_versions_wpp).toList()
 
         if (isSupportedVersion(version, supportedList)) {
-            binding.statusSummary1.text = getString(R.string.version_s, version)
-            binding.status2.getChildAt(0).setBackgroundResource(R.drawable.gradient_success)
+            binding.statusSummary1.text = getString(R.string.version_s, version) + " · In Memory & Hooked"
         } else {
             binding.statusSummary1.text = getString(R.string.version_s_not_listed, version)
-            binding.status2.getChildAt(0).setBackgroundResource(R.drawable.gradient_warning)
         }
         binding.rebootBtn.visibility = View.VISIBLE
+        binding.openWppBtn.visibility = View.VISIBLE
         binding.statusSummary1.visibility = View.VISIBLE
         binding.statusIcon2.setImageResource(R.drawable.ic_round_check_circle_24)
     }
@@ -355,25 +382,36 @@ class HomeFragment : BaseFragment() {
 
     private fun checkStateWpp(activity: FragmentActivity) {
         if (YukiHookAPI.Status.isModuleActive) {
+            binding.dotStatus.setBackgroundResource(R.drawable.bg_dot_active)
+            binding.tvStatus.text = "Active"
+            binding.tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.ios_blue))
             binding.statusIcon.setImageResource(R.drawable.ic_round_check_circle_24)
             binding.statusTitle.setText(R.string.module_enabled)
             binding.statusSummary.text =
                 String.format(getString(R.string.version_s), BuildConfig.VERSION_NAME)
-            binding.status.getChildAt(0).setBackgroundResource(R.drawable.gradient_success)
+            binding.statusSummary.visibility = View.VISIBLE
         } else {
-            binding.statusIcon.setImageResource(R.drawable.ic_round_error_outline_24)
+            binding.dotStatus.setBackgroundResource(R.drawable.bg_dot_inactive)
+            binding.tvStatus.text = "Standby"
+            binding.tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+            binding.statusIcon.setImageResource(R.drawable.ic_round_warning_24)
             binding.statusTitle.setText(R.string.module_disabled)
-            binding.status.getChildAt(0).setBackgroundResource(R.drawable.gradient_error)
-            binding.statusSummary.visibility = View.GONE
+            binding.statusSummary.text = "LSPosed framework not active or scope not enabled"
+            binding.statusSummary.visibility = View.VISIBLE
         }
+
         if (isInstalled(FeatureLoader.PACKAGE_WPP) && App.isOriginalPackage) {
-            disableWpp()
+            resetWppStateToStandby()
         } else {
             binding.status2.visibility = View.GONE
         }
-        if (App.isOriginalPackage) {
+
+        if (isInstalled(FeatureLoader.PACKAGE_BUSINESS)) {
+            resetBusinessStateToStandby()
+        } else {
             binding.status3.visibility = View.GONE
         }
+
         checkWpp(activity)
         binding.deviceName.text = Build.MANUFACTURER
         binding.sdk.text = Build.VERSION.SDK_INT.toString()
@@ -388,6 +426,94 @@ class HomeFragment : BaseFragment() {
         binding.listBusiness.text =
             activity.resources.getStringArray(R.array.supported_versions_business).contentToString()
         updatePackageStatuses(activity)
+    }
+
+    private fun resetWppStateToStandby() {
+        val packageInfo = try {
+            requireContext().packageManager.getPackageInfo(FeatureLoader.PACKAGE_WPP, 0)
+        } catch (_: Exception) {
+            null
+        }
+        if (packageInfo != null) {
+            binding.status2.visibility = View.VISIBLE
+            binding.statusIcon2.setImageResource(R.drawable.ic_round_check_circle_24)
+            binding.statusTitle2.setText(R.string.whatsapp_standby_ready)
+            binding.statusSummary1.text = getString(R.string.whatsapp_standby_summary)
+            binding.statusSummary1.visibility = View.VISIBLE
+            binding.rebootBtn.visibility = View.VISIBLE
+            binding.openWppBtn.visibility = View.VISIBLE
+        } else {
+            binding.status2.visibility = View.GONE
+        }
+    }
+
+    private fun resetBusinessStateToStandby() {
+        val packageInfo = try {
+            requireContext().packageManager.getPackageInfo(FeatureLoader.PACKAGE_BUSINESS, 0)
+        } catch (_: Exception) {
+            null
+        }
+        if (packageInfo != null) {
+            binding.status3.visibility = View.VISIBLE
+            binding.statusIcon3.setImageResource(R.drawable.ic_round_check_circle_24)
+            binding.statusTitle3.setText(R.string.business_standby_ready)
+            binding.statusSummary3.text = getString(R.string.business_standby_summary)
+            binding.statusSummary3.visibility = View.VISIBLE
+            binding.rebootBtn2.visibility = View.VISIBLE
+            binding.openBusinessBtn.visibility = View.VISIBLE
+        } else {
+            binding.status3.visibility = View.GONE
+        }
+    }
+
+    private fun setupQuickControls() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+
+        binding.switchAntirevoke.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putString("antirevoke", if (isChecked) "1" else "0") }
+        }
+
+        binding.switchHideSeen.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean("hide_read", isChecked) }
+        }
+
+        binding.switchGhostMode.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean("ghostmode", isChecked) }
+        }
+
+        binding.switchDownloadStatus.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean("downloadstatus", isChecked) }
+        }
+
+        syncQuickControlsState()
+    }
+
+    private fun syncQuickControlsState() {
+        if (!isAdded || _binding == null) return
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        binding.switchAntirevoke.isChecked = prefs.getString("antirevoke", "0") != "0"
+        binding.switchHideSeen.isChecked = prefs.getBoolean("hide_read", false)
+        binding.switchGhostMode.isChecked = prefs.getBoolean("ghostmode", false)
+        binding.switchDownloadStatus.isChecked = prefs.getBoolean("downloadstatus", false)
+    }
+
+    private fun setupSubsystemNavigation() {
+        binding.navChatCard.setOnClickListener { view ->
+            animateClick(view)
+            (activity as? MainActivity)?.navigateToTab(1)
+        }
+        binding.navPrivacyCard.setOnClickListener { view ->
+            animateClick(view)
+            (activity as? MainActivity)?.navigateToTab(2)
+        }
+        binding.navMediaCard.setOnClickListener { view ->
+            animateClick(view)
+            (activity as? MainActivity)?.navigateToTab(3)
+        }
+        binding.navThemeCard.setOnClickListener { view ->
+            animateClick(view)
+            (activity as? MainActivity)?.navigateToTab(4)
+        }
     }
 
     private fun updatePackageStatuses(context: Context) {
@@ -464,19 +590,11 @@ class HomeFragment : BaseFragment() {
     }
 
     private fun disableBusiness() {
-        binding.statusIcon3.setImageResource(R.drawable.ic_round_error_outline_24)
-        binding.statusTitle3.setText(R.string.business_is_not_running_or_has_not_been_activated_in_lsposed)
-        binding.status3.getChildAt(0).setBackgroundResource(R.drawable.gradient_error)
-        binding.statusSummary3.visibility = View.GONE
-        binding.rebootBtn2.visibility = View.GONE
+        resetBusinessStateToStandby()
     }
 
     private fun disableWpp() {
-        binding.statusIcon2.setImageResource(R.drawable.ic_round_error_outline_24)
-        binding.statusTitle2.setText(R.string.whatsapp_is_not_running_or_has_not_been_activated_in_lsposed)
-        binding.status2.getChildAt(0).setBackgroundResource(R.drawable.gradient_error)
-        binding.statusSummary1.visibility = View.GONE
-        binding.rebootBtn.visibility = View.GONE
+        resetWppStateToStandby()
     }
 
     private fun checkWpp(activity: FragmentActivity) {
@@ -484,84 +602,6 @@ class HomeFragment : BaseFragment() {
         activity.sendBroadcast(checkWpp)
     }
 
-    private fun checkForUpdates() {
-        if (context == null) return
-        binding.updateSummary.text = getString(R.string.current_version_s, BuildConfig.VERSION_NAME)
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val client = OkHttpClient.Builder()
-                    .connectTimeout(10, TimeUnit.SECONDS)
-                    .readTimeout(10, TimeUnit.SECONDS)
-                    .build()
-
-                val request = Request.Builder()
-                    .url("https://api.github.com/repos/Dev4Mod/WaEnhancer/releases/latest")
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        updateCardState(success = false, isUpToDate = false, newVersion = null)
-                        return@use
-                    }
-
-                    val body = response.body
-                    val content = body.string()
-                    val release = JSONObject(content)
-                    val tagName = release.optString("tag_name", "")
-
-                    if (tagName.isBlank()) {
-                        updateCardState(success = true, isUpToDate = true, newVersion = null)
-                        return@use
-                    }
-
-                    val parts = tagName.split("-")
-                    val hash = if (parts.size > 1) parts[1].trim() else ""
-                    val isNewVersion = hash.isNotEmpty() && !BuildConfig.VERSION_NAME.lowercase()
-                        .contains(hash.lowercase().trim())
-
-                    updateCardState(
-                        success = true,
-                        isUpToDate = !isNewVersion,
-                        newVersion = tagName
-                    )
-                }
-            } catch (_: UnknownHostException) {
-                updateCardState(success = false, isUpToDate = false, newVersion = null)
-            } catch (_: Exception) {
-                updateCardState(success = false, isUpToDate = false, newVersion = null)
-            }
-        }
-    }
-
-    private suspend fun updateCardState(
-        success: Boolean,
-        isUpToDate: Boolean,
-        newVersion: String?
-    ) {
-        withContext(Dispatchers.Main) {
-            if (_binding == null || !isAdded) return@withContext
-
-            if (!success) {
-                binding.updateIcon.setImageResource(R.drawable.ic_round_error_outline_24)
-                binding.updateTitle.setText(R.string.update_check_failed)
-                binding.updateSummary.setText(R.string.update_check_failed_summary)
-                binding.updateCard.getChildAt(0).setBackgroundResource(R.drawable.gradient_warning)
-            } else if (isUpToDate) {
-                binding.updateIcon.setImageResource(R.drawable.ic_round_check_circle_24)
-                binding.updateTitle.setText(R.string.up_to_date)
-                binding.updateSummary.text =
-                    getString(R.string.current_version_s, BuildConfig.VERSION_NAME)
-                binding.updateCard.getChildAt(0).setBackgroundResource(R.drawable.gradient_success)
-            } else {
-                binding.updateIcon.setImageResource(R.drawable.ic_round_update_24)
-                binding.updateTitle.setText(R.string.update_available)
-                binding.updateSummary.text =
-                    getString(R.string.update_available_summary, newVersion)
-                binding.updateCard.getChildAt(0).setBackgroundResource(R.drawable.gradient_update)
-            }
-        }
-    }
 
     private fun showDiagnosticsDialog() {
         val context = requireContext()

@@ -52,17 +52,6 @@ class BridgeClientKt(private val context: Context) : BaseClient(), ServiceConnec
         }
 
         connectionMutex.withLock {
-            runCatching {
-                val intent = Intent().apply {
-                    component = ComponentName(
-                        BuildConfig.APPLICATION_ID,
-                        ForceStartActivity::class.java.name
-                    )
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                }
-                context.startActivity(intent)
-            }.onFailure { YukiLog.log("Failed to start ForceStartActivity: ${it.message}") }
-
             val connected = withTimeoutOrNull(3000L.milliseconds) {
                 suspendCancellableCoroutine<Boolean> { continuation ->
                     connectionContinuation = continuation

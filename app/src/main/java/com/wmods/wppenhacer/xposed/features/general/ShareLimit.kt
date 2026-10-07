@@ -9,12 +9,13 @@ class ShareLimit(classLoader: ClassLoader, xprefs: SharedPreferences) :
     Feature(classLoader, xprefs) {
 
     override fun doHook() {
-        if (!xprefs.getBoolean("removeforwardlimit", false)) return
         val multiSelectionLimitInfoClass =
             Unobfuscator.loadMultiSelectionLimitInfoClass(classLoader)
         multiSelectionLimitInfoClass.resolve().constructor { }.hookAll {
             before {
-                args[0] = Int.MAX_VALUE
+                if (xprefs.getBoolean("removeforwardlimit", false)) {
+                    args[0] = Int.MAX_VALUE
+                }
             }
         }
     }

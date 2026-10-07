@@ -1,28 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="surface_elevated">#1E1E1E</color>
-    <color name="surface_container">#252525</color>
-    <color name="surface_container_high">#2C2C2C</color>
+    <color name="bg_dark">#000000</color>
+    <color name="surface_card">#1C1C1E</color>
+    <color name="surface_card_secondary">#2C2C2E</color>
+    <color name="surface_input">#151517</color>
 
-    <color name="nav_indicator">#1B5E20</color>
-    <color name="nav_background">#121212</color>
-
-    <color name="ripple_color">#33FFFFFF</color>
-
-    <color name="card_shadow">#00000000</color>
+    <color name="border_subtle">#2C2C2E</color>
+    <color name="border_focused">#007AFF</color>
+    <color name="divider_dark">#2C2C2E</color>
 
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#B3B3B3</color>
+    <color name="text_secondary">#8E8E93</color>
+    <color name="text_tertiary">#636366</color>
+    <color name="text_on_gradient">#FFFFFF</color>
 
-    <color name="gradient_start_primary">#26A69A</color>
-    <color name="gradient_end_primary">#00796B</color>
+    <color name="ios_blue">#007AFF</color>
+    <color name="ios_green">#007AFF</color>
+    <color name="ios_orange">#FF9F0A</color>
+    <color name="ios_red">#FF453A</color>
+    <color name="ios_purple">#AF52DE</color>
 
-    <color name="whatsapp_green">#25D366</color>
-    <color name="whatsapp_dark_green">#128C7E</color>
-    <color name="whatsapp_teal">#075E54</color>
+    <color name="status_active">#007AFF</color>
+    <color name="status_inactive">#8E8E93</color>
+    <color name="status_warning">#FF9F0A</color>
+    <color name="status_active_dot">#007AFF</color>
+    <color name="status_active_bg">#152238</color>
+    <color name="status_active_border">#1E3A5F</color>
+    <color name="status_inactive_dot">#8E8E93</color>
+    <color name="status_inactive_bg">#1C1C1E</color>
+    <color name="status_inactive_border">#2C2C2E</color>
 
-    <color name="log_info">#E0E0E0</color>
-    <color name="log_success">#69F0AE</color>
-    <color name="log_warning">#FFD180</color>
-    <color name="log_error">#FF8A80</color>
+    <color name="whatsapp_green">#007AFF</color>
+    <color name="whatsapp_dark_green">#0056B3</color>
+    <color name="whatsapp_teal">#007AFF</color>
+
+    <color name="ios_system_background">#000000</color>
+    <color name="ios_secondary_background">#000000</color>
+    <color name="ios_grouped_card">#1C1C1E</color>
+    <color name="ios_hairline">#2C2C2E</color>
+    <color name="ios_separator">#2C2C2E</color>
+    <color name="ios_label_primary">#FFFFFF</color>
+    <color name="ios_label_secondary">#8E8E93</color>
+    <color name="ios_label_tertiary">#636366</color>
+    <color name="ios_switch_track_off">#39393D</color>
+    <color name="ios_button_secondary_bg">#1C1C1E</color>
+
+    <color name="surface_elevated">#1C1C1E</color>
+    <color name="surface_container">#151517</color>
+    <color name="surface_container_high">#2C2C2E</color>
+    <color name="nav_indicator">#2C2C2E</color>
+    <color name="nav_background">#000000</color>
+    <color name="ripple_color">#26FFFFFF</color>
+    <color name="card_shadow">#00000000</color>
+
+    <color name="log_info">#8E8E93</color>
+    <color name="log_success">#007AFF</color>
+    <color name="log_warning">#FF9F0A</color>
+    <color name="log_error">#FF453A</color>
+
+    <color name="gradient_start_primary">#1C1C1E</color>
+    <color name="gradient_end_primary">#000000</color>
+    <color name="gradient_start_success">#152238</color>
+    <color name="gradient_end_success">#0A1320</color>
+    <color name="gradient_start_error">#3A1215</color>
+    <color name="gradient_end_error">#1E0A0C</color>
+    <color name="gradient_start_warning">#38240D</color>
+    <color name="gradient_end_warning">#1D1205</color>
 </resources>

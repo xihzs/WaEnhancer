@@ -56,48 +56,64 @@ class MediaQuality(loader: ClassLoader, preferences: SharedPreferences) :
                 }
             }
 
-            val mediaDataVideoConfiguration =
+            val mediaDataVideoConfiguration = try {
                 Unobfuscator.loadMediaDataVideoConfigurationClass(classLoader)
-            val fieldsMediaDataVideoConfiguration =
+            } catch (e: Throwable) {
+                null
+            }
+            val fieldsMediaDataVideoConfiguration = if (mediaDataVideoConfiguration != null) {
                 Unobfuscator.getAllMapFields(mediaDataVideoConfiguration)
+            } else {
+                emptyMap()
+            }
 
-            val videoTranscoderStart = Unobfuscator.loadVideoTranscoderStartMethod(classLoader)
-            videoTranscoderStart.hook {
+            val videoTranscoderStart = try {
+                Unobfuscator.loadVideoTranscoderStartMethod(classLoader)
+            } catch (e: Throwable) {
+                null
+            }
+            videoTranscoderStart?.hook {
                 before {
-                    val videoProcessor = args[0]
+                    val videoProcessor = args[0] ?: return@before
                     val booleanParams = ReflectionUtils.getFieldsByType(
-                        videoProcessor!!.javaClass,
+                        videoProcessor.javaClass,
                         java.lang.Boolean.TYPE
                     )
                     if (booleanParams.size > 2) {
                         val field: Field = booleanParams[2]
                         field.setBoolean(videoProcessor, false)
                     }
-                    val fieldMediaDataVideoConfiguration = ReflectionUtils.getFieldByType(
-                        videoProcessor!!.javaClass,
-                        mediaDataVideoConfiguration
-                    )
-                    val mediaDataVideoConfigObj =
-                        fieldMediaDataVideoConfiguration!!.get(videoProcessor)
-                    val fieldforceSingleTranscoding =
-                        fieldsMediaDataVideoConfiguration["forceSingleTranscoding"]
-                    fieldforceSingleTranscoding?.setBoolean(mediaDataVideoConfigObj, true)
+                    if (mediaDataVideoConfiguration != null) {
+                        val fieldMediaDataVideoConfiguration = ReflectionUtils.getFieldByType(
+                            videoProcessor.javaClass,
+                            mediaDataVideoConfiguration
+                        )
+                        val mediaDataVideoConfigObj =
+                            fieldMediaDataVideoConfiguration?.get(videoProcessor)
+                        val fieldforceSingleTranscoding =
+                            fieldsMediaDataVideoConfiguration["forceSingleTranscoding"]
+                        fieldforceSingleTranscoding?.setBoolean(mediaDataVideoConfigObj, true)
+                    }
                 }
             }
 
             Others.propsBoolean[18888] = true
-            Unobfuscator.loadMediaTranscoderStart(classLoader).hook {
-                before {
-                    val processSpec = args[0] ?: return@before
-                    val booleanField = processSpec.javaClass.declaredFields.first {
-                        it.type == Boolean::class.javaPrimitiveType
+            try {
+                Unobfuscator.loadMediaTranscoderStart(classLoader).hook {
+                    before {
+                        val processSpec = args[0] ?: return@before
+                        val booleanField = processSpec.javaClass.declaredFields.firstOrNull {
+                            it.type == Boolean::class.javaPrimitiveType
+                        } ?: return@before
+                        booleanField.isAccessible = true
+                        booleanField.set(
+                            processSpec,
+                            true
+                        )
                     }
-                    booleanField.isAccessible = true
-                    booleanField.set(
-                        processSpec,
-                        true
-                    )
                 }
+            } catch (e: Throwable) {
+                logDebug("loadMediaTranscoderStart hook failed: ${e.message}")
             }
 
             Others.propsBoolean[5549] = true
