@@ -161,6 +161,35 @@
 
     <PreferenceCategory
         app:iconSpaceReserved="false"
+        app:title="@string/music_status_title">
+
+        <rikka.material.preference.MaterialSwitchPreference
+            android:defaultValue="true"
+            app:key="music_region_spoof"
+            app:summary="@string/music_region_spoof_sum"
+            app:title="@string/music_region_spoof_title" />
+
+        <ListPreference
+            android:defaultValue="US"
+            android:dependency="music_region_spoof"
+            android:entries="@array/music_region_entries"
+            android:entryValues="@array/music_region_values"
+            app:key="music_region_country"
+            app:title="@string/music_region_country_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <com.wmods.wppenhacer.preference.LimitedEditTextPreference
+            android:defaultValue="US"
+            android:dependency="music_region_spoof"
+            app:key="music_region_custom_country"
+            app:maxLength="2"
+            app:title="@string/music_region_custom_title"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
         app:title="@string/other">
 
         <rikka.material.preference.MaterialSwitchPreference
@@ -170,6 +199,5 @@
             app:title="@string/enable_media_preview" />
 
     </PreferenceCategory>
-
 
 </PreferenceScreen>

@@ -34,6 +34,7 @@ import com.wmods.wppenhacer.xposed.features.media.DownloadProfile
 import com.wmods.wppenhacer.xposed.features.media.DownloadViewOnce
 import com.wmods.wppenhacer.xposed.features.media.MediaPreview
 import com.wmods.wppenhacer.xposed.features.media.MediaQuality
+import com.wmods.wppenhacer.xposed.features.media.MusicRegionSpoof
 import com.wmods.wppenhacer.xposed.features.media.StatusDownload
 import com.wmods.wppenhacer.xposed.features.others.ActivityController
 import com.wmods.wppenhacer.xposed.features.others.AudioTranscript
@@ -96,6 +97,7 @@ internal object FeatureRegistry {
         HideTabs::class.java,
         IGStatus::class.java,
         MediaQuality::class.java,
+        MusicRegionSpoof::class.java,
         NewChat::class.java,
         Others::class.java,
         PinnedLimit::class.java,

@@ -243,4 +243,26 @@
         <item>2</item>
         <item>6</item>
     </string-array>
+
+    <string-array name="music_region_entries">
+        <item>United States (US)</item>
+        <item>United Kingdom (GB)</item>
+        <item>Brazil (BR)</item>
+        <item>Germany (DE)</item>
+        <item>Japan (JP)</item>
+        <item>South Korea (KR)</item>
+        <item>India (IN)</item>
+        <item>Indonesia (ID)</item>
+    </string-array>
+
+    <string-array name="music_region_values">
+        <item>US</item>
+        <item>GB</item>
+        <item>BR</item>
+        <item>DE</item>
+        <item>JP</item>
+        <item>KR</item>
+        <item>IN</item>
+        <item>ID</item>
+    </string-array>
 </resources>
